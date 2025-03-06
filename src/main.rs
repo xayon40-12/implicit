@@ -79,7 +79,7 @@ pub fn fixedpoint<V: VectorSpace + Copy>(
     let mut gx0 = fx0.sub(x0);
     let mut x1 = fx0;
     let mut count = 1;
-    while (x0.sub(x1).norm2()) / x1.norm2() > accuracy && count < 100 {
+    while (x0.sub(x1).norm2()) / x1.norm2().max(x0.norm2()) > accuracy && count < 100 {
         count += 1;
         x0 = x1;
         let fx1 = f(x1);
@@ -134,25 +134,69 @@ pub fn integrate<const N: usize, const M: usize>(
         max_count = max_count.max(count);
         count_tot += count;
         t += dt;
-        let sol = f([t; M])[0].exp();
-        println!(
-            "t: {t:.3}   count: {count}, val: {:.10e}, sol: {sol:.10e}, err: {:.10e} ",
-            x[0],
-            (sol - x[0]) / sol
-        );
+        // let sol = f([t; M])[0].exp();
+        // println!(
+        //     "t: {t:.3}   count: {count}, val: {:.10e}, sol: {sol:.10e}, err: {:.10e} ",
+        //     x[0],
+        //     (sol - x[0]) / sol
+        // );
     }
+    let sol = f([t; M])[0].exp();
+    println!(
+        "count tot: {count_tot}, max: {max_count}, x: {:.10e}, err: {:.10e}",
+        x[0],
+        (sol - x[0]) / sol
+    );
     (count_tot, max_count, x, t)
 }
 
 fn main() {
     let sgn = |x: f32| -x;
-    let m = 1e3f32;
-    let f = |x: [f32; 1]| [sgn(m * x[0])];
-    let dt = 1e-3;
-    let t_max = sgn(10.0f32.powf(sgn(15.0)).ln()) / m;
+    let dt = 7.5e-4;
     let x = [1.0];
-    let bj = [0.75, 0.25];
-    let aij = [[5.0 / 12.0, -1.0 / 12.0], bj];
-    let (tot, max, x, _t) = integrate(x, dt, t_max, aij, bj, f);
-    println!("count tot: {tot}, max: {max}, x: {:.10e}", x[0]);
+    for i in 0..8 {
+        let m = 10.0f32.powf(i as f32 * 0.5);
+        println!("m: {m:e}\n");
+        let f = |x: [f32; 1]| [sgn(m * x[0])];
+        let t_max = sgn(10.0f32.powf(sgn(10.0)).ln()) / m;
+
+        println!("Euler:");
+        let bj = [1.0];
+        let aij = [[1.0]];
+        integrate(x, dt, t_max, aij, bj, f);
+        println!("LabattoIIIC2:");
+        let bj = [0.5, 0.5];
+        let aij = [[0.5, -0.5], bj];
+        integrate(x, dt, t_max, aij, bj, f);
+        println!("RadauIIA2:");
+        let bj = [0.75, 0.25];
+        let aij = [[5.0 / 12.0, -1.0 / 12.0], bj];
+        integrate(x, dt, t_max, aij, bj, f);
+        println!("LabattoIIIC3:");
+        let bj = [1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0];
+        let aij = [
+            [1.0 / 6.0, -1.0 / 3.0, 1.0 / 6.0],
+            [1.0 / 6.0, 5.0 / 12.0, -1.0 / 12.0],
+            bj,
+        ];
+        integrate(x, dt, t_max, aij, bj, f);
+        println!("RadauIIA3:");
+        let s6 = 6.0f32.sqrt();
+        let bj = [4.0 / 9.0 - s6 / 36.0, 4.0 / 9.0 + s6 / 36.0, 1.0 / 9.0];
+        let aij = [
+            [
+                11.0 / 45.0 - 7.0 * s6 / 360.0,
+                37.0 / 225.0 - 169.0 * s6 / 1800.0,
+                -2.0 / 225.0 + s6 / 75.0,
+            ],
+            [
+                37.0 / 225.0 + 169.0 * s6 / 1800.0,
+                11.0 / 45.0 + 7.0 * s6 / 360.0,
+                -2.0 / 225.0 - s6 / 75.0,
+            ],
+            bj,
+        ];
+        integrate(x, dt, t_max, aij, bj, f);
+        println!("\n");
+    }
 }
