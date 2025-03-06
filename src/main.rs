@@ -79,7 +79,7 @@ pub fn fixedpoint<V: VectorSpace + Copy>(
     let mut gx0 = fx0.sub(x0);
     let mut x1 = fx0;
     let mut count = 1;
-    while (x0.sub(x1).norm2()) / x1.norm2() > accuracy && count < 10 {
+    while (x0.sub(x1).norm2()) / x1.norm2() > accuracy && count < 100 {
         count += 1;
         x0 = x1;
         let fx1 = f(x1);
@@ -96,36 +96,63 @@ pub fn fixedpoint<V: VectorSpace + Copy>(
     (x1, count)
 }
 
-pub fn integrate(mut x: f32, dt: f32, t_max: f32, f: impl Fn(f32) -> f32) -> (usize, usize, f32) {
-    let mut k = 0.0;
+pub fn integrate<const N: usize, const M: usize>(
+    mut x: [f32; M],
+    dt: f32,
+    t_max: f32,
+    aij: [[f32; N]; N],
+    bj: [f32; N],
+    f: impl Fn([f32; M]) -> [f32; M],
+) -> (usize, usize, [f32; M], f32) {
+    let mut k = [[0.0; M]; N];
     let mut count;
     let mut count_tot = 0;
     let mut max_count = 0;
     let mut t = 0.0;
     let n = (t_max / dt) as usize;
     for _ in 0..n {
-        let fk = |k: f32| f(x.add(k.times(dt))); // TODO: use RadauIIA for higher accuracy and stability
+        let fk = |k: [[f32; M]; N]| {
+            let mut res = [[0.0; M]; N];
+            for i in 0..N {
+                let aijk = aij[i]
+                    .into_iter()
+                    .zip(k)
+                    .map(|(a, k)| k.times(a))
+                    .fold([0.0; M], |a, k| a.add(k));
+                res[i] = f(x.add(aijk.times(dt)));
+            }
+            res
+        }; // TODO: use RadauIIA for higher accuracy and stability
         (k, count) = fixedpoint(k, dt * dt, fk);
-        x = x.add(k.times(dt));
+        x = x.add(
+            bj.into_iter()
+                .zip(k)
+                .map(|(b, k)| k.times(b))
+                .fold([0.0; M], |a, k| a.add(k))
+                .times(dt),
+        );
         max_count = max_count.max(count);
         count_tot += count;
         t += dt;
-        let sol = f(t).exp();
+        let sol = f([t; M])[0].exp();
         println!(
-            "t: {t:.3}   count: {count}, val: {x:.10e}, sol: {sol:.10e}, err: {:.10e} ",
-            (sol - x) / sol
+            "t: {t:.3}   count: {count}, val: {:.10e}, sol: {sol:.10e}, err: {:.10e} ",
+            x[0],
+            (sol - x[0]) / sol
         );
     }
-    (count_tot, max_count, x)
+    (count_tot, max_count, x, t)
 }
 
 fn main() {
     let sgn = |x: f32| -x;
-    let m = 1e4f32;
-    let f = |x: f32| sgn(m * x);
+    let m = 1e3f32;
+    let f = |x: [f32; 1]| [sgn(m * x[0])];
     let dt = 1e-3;
     let t_max = sgn(10.0f32.powf(sgn(15.0)).ln()) / m;
-    let x = 1.0;
-    let (tot, max, x) = integrate(x, dt, t_max, f);
-    println!("count tot: {tot}, max: {max}, x: {x:.10e}");
+    let x = [1.0];
+    let bj = [0.75, 0.25];
+    let aij = [[5.0 / 12.0, -1.0 / 12.0], bj];
+    let (tot, max, x, _t) = integrate(x, dt, t_max, aij, bj, f);
+    println!("count tot: {tot}, max: {max}, x: {:.10e}", x[0]);
 }
