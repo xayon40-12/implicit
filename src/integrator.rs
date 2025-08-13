@@ -53,12 +53,34 @@ pub fn implicit<const N: usize, const M: usize>(
     fixedpoint(zeros, 1e-7, fk) //TODO find a better accuracy threshold, or maybe 0.0 but by including a few history of the iteration of x to compare to older values to detect loops
 }
 
+pub fn rk_step<const N: usize, const M: usize>(
+    x: [f32; M],
+    (aij, bj, is_explicit): RK<N>,
+    f: &impl Fn(f32, [f32; M]) -> [f32; M],
+    t: f32,
+    dt: f32,
+) -> ([f32; M], usize) {
+    let (k, count) = if is_explicit {
+        explicit(x, aij, &f, t, dt)
+    } else {
+        implicit(x, aij, &f, t, dt)
+    };
+    let x = x.add(
+        bj.into_iter()
+            .zip(k)
+            .map(|(b, k)| k.scal_mul(b))
+            .fold([0.0; M], |a, k| a.add(k))
+            .scal_mul(dt),
+    );
+    (x, count)
+}
+
 pub fn integrate<const N: usize, const M: usize, T>(
     mut x: [f32; M],
     t0: f32,
     dt: f32,
     t_max: f32,
-    (aij, bj, is_explicit): RK<N>,
+    rk: RK<N>,
     f: impl Fn(f32, [f32; M]) -> [f32; M],
     out: impl Fn([f32; M]) -> T,
 ) -> (Vec<f32>, Vec<T>, usize, usize, usize, usize, f32) {
@@ -71,18 +93,7 @@ pub fn integrate<const N: usize, const M: usize, T>(
     history.push(out(x));
     ts.push(t0);
     for _ in 0..n {
-        let (k, count) = if is_explicit {
-            explicit(x, aij, &f, t, dt)
-        } else {
-            implicit(x, aij, &f, t, dt)
-        };
-        let x1 = x.add(
-            bj.into_iter()
-                .zip(k)
-                .map(|(b, k)| k.scal_mul(b))
-                .fold([0.0; M], |a, k| a.add(k))
-                .scal_mul(dt),
-        );
+        let (x1, count) = rk_step(x, rk, &f, t, dt);
         x = x1;
         history.push(out(x));
         max_count = max_count.max(count);

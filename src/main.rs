@@ -98,7 +98,7 @@ pub fn cos_test() {
     for i in -5..=0 {
         let dt = 3.0f32.powf(i as f32);
         println!("dt: {dt:e}\n");
-        let f = |t: f32, x: [f32; 1]| [-500.0 * (x[0] - t.cos())];
+        let f = |t: f32, x: [f32; 1]| [-1000.0 * (x[0] - t.cos())];
         // let f = |x: [f32; 1]| [sgn(m * x[0])];
         let t_max = 10.0;
 
@@ -204,15 +204,16 @@ pub fn sin_cos_test() {
 }
 
 pub fn spring_test(tmax: f32, dt: f32, strength: f32, damping: f32, mass: f32) {
-    let x0 = [0.0, 0.0, 0.5, 0.0];
+    let x0 = [0.0, 0.0, 0.75, 0.0, 2.0, 0.0];
     let t0 = 0.0;
     let l = 1.0;
 
-    let f = |_t: f32, [x0, v0, x1, v1]: [f32; 4]| {
-        let f = (((x0 - x1).abs() - l) * strength + (v1 - v0) / damping) / mass;
-        [v0, f, v1, -f]
+    let f = |_t: f32, [x0, v0, x1, v1, x2, v2]: [f32; 6]| {
+        let f01 = (((x0 - x1).abs() - l) * strength + (v1 - v0) / damping) / mass;
+        let f12 = (((x1 - x2).abs() - l) * strength + (v2 - v1) / damping) / mass;
+        [v0, f01, v1, -f01 + f12, v2, -f12]
     };
-    let out = |[x0, _, x1, _]: [f32; 4]| (x0 - x1).abs();
+    let out = |[x0, _, x1, ..]: [f32; 6]| (x0 - x1).abs();
     if true {
         let (tsr, lsr, ..) = integrate(x0, t0, 1e-6, tmax, gl3(), f, out);
         let reference = tsr
@@ -268,8 +269,8 @@ fn main() {
         .next()
         .and_then(|v| v.parse::<f32>().ok())
         .unwrap_or(5e-4);
-    //spring_test(tmax, dt, strength, damping, mass);
+    spring_test(tmax, dt, strength, damping, mass);
     // exp_test(dt);
     // cos_test();
-    sin_cos_test();
+    // sin_cos_test();
 }
