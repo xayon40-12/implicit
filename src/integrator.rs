@@ -1,4 +1,4 @@
-use crate::fixed_point::fixedpoint;
+use crate::fixed_point::fixedpoint_newton;
 pub mod schemes;
 use crate::vector_space::VectorSpace;
 use schemes::RK;
@@ -50,7 +50,7 @@ pub fn implicit<const N: usize, const M: usize>(
         }
         res
     };
-    fixedpoint(zeros, 1e-7, fk) //TODO find a better accuracy threshold, or maybe 0.0 but by including a few history of the iteration of x to compare to older values to detect loops
+    fixedpoint_newton(zeros, 1e-1, 10, fk)
 }
 
 pub fn rk_step<const N: usize, const M: usize>(

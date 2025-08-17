@@ -203,19 +203,27 @@ pub fn sin_cos_test() {
     }
 }
 
-pub fn spring_test(tmax: f32, dt: f32, strength: f32, damping: f32, mass: f32) {
-    let x0 = [0.0, 0.0, 0.75, 0.0, 2.0, 0.0];
+pub fn spring_test(tmax: f32, dt: f32, damping_time: f32, mass: f32) {
+    println!("tmax         : {tmax}");
+    println!("dt           : {dt:e}");
+    println!("damping_time : {damping_time:e}");
+    println!("mass         : {mass}");
+    println!("");
+
+    let x0 = [0.0, 0.0, 0.5, 0.0, 2.0, 0.0];
     let t0 = 0.0;
     let l = 1.0;
+    let damping = damping_time.recip();
+    let strength = 0.5 * damping * damping;
 
     let f = |_t: f32, [x0, v0, x1, v1, x2, v2]: [f32; 6]| {
-        let f01 = (((x0 - x1).abs() - l) * strength + (v1 - v0) / damping) / mass;
-        let f12 = (((x1 - x2).abs() - l) * strength + (v2 - v1) / damping) / mass;
+        let f01 = (((x0 - x1).abs() - l) * strength + (v1 - v0) * damping) / mass;
+        let f12 = (((x1 - x2).abs() - l) * strength + (v2 - v1) * damping) / mass;
         [v0, f01, v1, -f01 + f12, v2, -f12]
     };
     let out = |[x0, _, x1, ..]: [f32; 6]| (x0 - x1).abs();
     if true {
-        let (tsr, lsr, ..) = integrate(x0, t0, 1e-6, tmax, gl3(), f, out);
+        let (tsr, lsr, ..) = integrate(x0, t0, 1e-5, tmax, gl1(), f, out);
         let reference = tsr
             .into_iter()
             .zip(lsr.into_iter())
@@ -225,22 +233,28 @@ pub fn spring_test(tmax: f32, dt: f32, strength: f32, damping: f32, mass: f32) {
             .join("\n");
         std::fs::write("target/ref", reference).unwrap();
     }
+    let (_, lsrd1, crd1, _, mrd1, ..) = integrate(x0, t0, dt, tmax, radau1(), f, out);
+    let (_, lsrd2, crd2, _, mrd2, ..) = integrate(x0, t0, dt, tmax, radau2(), f, out);
     let (ts, lsgl1, c1, _, m1, ..) = integrate(x0, t0, dt, tmax, gl1(), f, out);
-    let (_, lsrk2, crk2, _, mrk2, ..) = integrate(x0, t0, dt, tmax, rk2(), f, out);
     let (_, lsgl2, c2, _, m2, ..) = integrate(x0, t0, dt, tmax, gl2(), f, out);
     let (_, lsgl3, c3, _, m3, ..) = integrate(x0, t0, dt, tmax, gl3(), f, out);
-    println!("gl1 {c1} {m1}\nrk2 {crk2} {mrk2}\ngl2 {c2} {m2}\ngl3 {c3} {m3}");
+    let (_, lsrk2, crk2, _, mrk2, ..) = integrate(x0, t0, dt, tmax, rk2(), f, out);
+    println!("rd1 {crd1} {mrd1}\nrd2 {crd2} {mrd2}\ngl1 {c1} {m1}\nrk2 {crk2} {mrk2}\ngl2 {c2} {m2}\ngl3 {c3} {m3}");
     let vals = ts
         .into_iter()
+        .zip(lsrd1.into_iter())
+        .zip(lsrd2.into_iter())
         .zip(lsgl1.into_iter())
         .zip(lsrk2.into_iter())
         .zip(lsgl2.into_iter())
         .zip(lsgl3.into_iter())
-        .map(|((((t, lgl1), lrk2), lgl2), lgl3)| format!("{t} {lgl1} {lgl2} {lgl3} {lrk2}"))
+        .map(|((((((t, lrd1), lrd2), lgl1), lrk2), lgl2), lgl3)| {
+            format!("{t} {lrd1} {lrd2} {lgl1} {lgl2} {lgl3} {lrk2}")
+        })
         .collect::<Vec<_>>()
         .join("\n");
     std::fs::write("target/vals", vals).unwrap();
-    Command::new("gnuplot").args(["-p", "-e", "set yrange [0:2]; plot 'target/ref' u 1:2 w l t 'ref', 'target/vals' u 1:2 t 'gl1', 'target/vals' u 1:3 t 'gl2', 'target/vals' u 1:4 t 'gl3', 'target/vals' u 1:5 t 'rk2', 'target/vals' u 1:6 t 'rk4'"]).output().unwrap();
+    Command::new("gnuplot").args(["-p", "-e", "set yrange [0.5:1.5]; plot 'target/ref' u 1:2 w l t 'ref', 'target/vals' u 1:2 w l t 'rd1', 'target/vals' u 1:3 w l t 'rd2', 'target/vals' u 1:4 w l t 'gl1', 'target/vals' u 1:5 w l t 'gl2', 'target/vals' u 1:6 w l t 'gl3', 'target/vals' u 1:7 w l t 'rk2'"]).output().unwrap();
 }
 
 fn main() {
@@ -253,23 +267,18 @@ fn main() {
         .skip(2)
         .next()
         .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(1.0);
+        .unwrap_or(0.2);
     let dt = std::env::args()
         .skip(3)
         .next()
         .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(1e-3);
-    let strength = std::env::args()
+        .unwrap_or(1e-2);
+    let damping = std::env::args()
         .skip(4)
         .next()
         .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(1e6);
-    let damping = std::env::args()
-        .skip(5)
-        .next()
-        .and_then(|v| v.parse::<f32>().ok())
-        .unwrap_or(5e-4);
-    spring_test(tmax, dt, strength, damping, mass);
+        .unwrap_or(1e-3);
+    spring_test(tmax, dt, damping, mass);
     // exp_test(dt);
     // cos_test();
     // sin_cos_test();

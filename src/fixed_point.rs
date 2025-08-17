@@ -1,8 +1,43 @@
 use crate::vector_space::VectorSpace;
 
+pub fn fixedpoint_newton<V: VectorSpace + Copy + std::fmt::Debug>(
+    mut x0: V,
+    accuracy: f32,
+    max_iter: usize,
+    f: impl Fn(V) -> V,
+) -> (V, usize) {
+    // return fixedpoint_a(x0, accuracy, f);
+
+    // NOTE: instead of directly using a fixed-point
+    // - we construct the newton method `g'(x_n)*z_n = -g(x_n)` with `z_n = x_{n+1} - x_n`
+    // - we use the approx `g'(u)v ~= (g(u+e*v)-g(u))/e`
+    // - finaly we solve with a fixed point `f(z_n) = (g(x_n+e*z_n)-g(x_n))/e + g(x_n) + z_n`
+    // - the results are actually better by multiplying the newton part by sqrt(e) `f(z_n) = (g(x_n+e*z_n)-g(x_n))/sqrt(e) + sqrt(e)*g(x_n) + z_n`
+    let g = |x| f(x).sub(x);
+    let e = accuracy;
+    let mut count_tot = 0;
+    let zeros = x0.scal_mul(0.0);
+    {
+        // do only one Newton iteration
+        let gx0 = g(x0);
+        let gx0emgx0 = gx0.scal_mul(e - 1.0); // g(x0)*e - g(x0)
+        let gnewt = |x: V| {
+            g(x0.add(x.scal_mul(e)))
+                .add(gx0emgx0)
+                .scal_mul(e.sqrt().recip())
+                .add(x)
+        };
+        let (dx, count) = fixedpoint(zeros, e * e, max_iter, gnewt);
+        count_tot += count + 1; // +1 for fx0
+        x0 = x0.add(dx);
+    }
+    (x0, count_tot)
+}
+
 pub fn fixedpoint<V: VectorSpace + Copy + std::fmt::Debug>(
     mut x0: V,
     accuracy: f32,
+    max_iter: usize,
     f: impl Fn(V) -> V,
 ) -> (V, usize) {
     let mut fx = [f(x0); 2];
@@ -10,7 +45,7 @@ pub fn fixedpoint<V: VectorSpace + Copy + std::fmt::Debug>(
     let mut x1 = fx[0];
     let mut count = 1;
     let err = |x0: V, x1: V| (x0.sub(x1).norm2()) / (x1.norm2().max(x0.norm2() + 1e-20));
-    while err(x0, x1) > accuracy && count < 100 {
+    while err(x0, x1) > accuracy && count < max_iter {
         x0 = x1;
         fx[1] = f(x1);
         gx[1] = fx[1].sub(x1);
