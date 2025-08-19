@@ -47,6 +47,13 @@ pub fn radau2() -> RK<2> {
         false,
     )
 }
+pub fn d2() -> RK<2> {
+    let x = 1.0 - 2.0f32.sqrt() / 2.0;
+    ([[x, 0.0], [1.0 - x, x]], [1.0 - x, x], false)
+}
+pub fn rk1() -> RK<1> {
+    ([[0.0]], [1.0], true)
+}
 pub fn rk2() -> RK<2> {
     ([[0.0, 0.0], [1.0, 0.0]], [0.5, 0.5], true)
 }

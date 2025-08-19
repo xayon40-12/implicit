@@ -4,7 +4,7 @@ use implicit::integrator::integrate;
 use implicit::integrator::schemes::*;
 use implicit::vector_space::VectorSpace;
 
-pub fn exp_test(dt: f32) {
+pub fn exp_test(dt: f32, max_iter: usize) {
     let sgn = |x: f32| -x;
     let x = [1.0];
     let info = |(_ts, x, cost, count_tot, max_count, steps, t): (
@@ -37,31 +37,31 @@ pub fn exp_test(dt: f32) {
         let t_max = sgn(10.0f32.powf(sgn(10.0)).ln()) / m;
 
         print!("GL1:       \n");
-        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out), &f);
+        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out, max_iter), &f);
         println!("    ratio: 1.0");
         print!("RK2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out), &f);
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out, max_iter), &f);
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out), &f);
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out, max_iter), &f);
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("RK4:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out), &f);
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out, max_iter), &f);
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL3:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out), &f);
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out, max_iter), &f);
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
@@ -70,7 +70,7 @@ pub fn exp_test(dt: f32) {
         println!("\n");
     }
 }
-pub fn cos_test() {
+pub fn cos_test(max_iter: usize) {
     let x = [0.15];
     let info = |(_ts, x, cost, count_tot, max_count, steps, t): (
         Vec<f32>,
@@ -103,31 +103,31 @@ pub fn cos_test() {
         let t_max = 10.0;
 
         print!("GL1:       \n");
-        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out));
+        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out, max_iter));
         println!("    ratio: 1.0");
         print!("RK2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("RK4:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL3:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
@@ -136,7 +136,7 @@ pub fn cos_test() {
         println!("\n");
     }
 }
-pub fn sin_cos_test() {
+pub fn sin_cos_test(max_iter: usize) {
     let x = [1.0, 0.0];
     let info = |(_ts, x, cost, count_tot, max_count, steps, t): (
         Vec<f32>,
@@ -169,31 +169,31 @@ pub fn sin_cos_test() {
         let t_max = 1e3;
 
         print!("GL1:       \n");
-        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out));
+        let (c_ref, err_ref) = info(integrate(x, t0, dt, t_max, gl1(), f, out, max_iter));
         println!("    ratio: 1.0");
         print!("RK2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk2(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL2:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl2(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("RK4:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, rk4(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
             err / err_ref
         );
         print!("GL3:       \n");
-        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out));
+        let (c, err) = info(integrate(x, t0, dt, t_max, gl3(), f, out, max_iter));
         println!(
             "    ratio: cost {:.1} | err {:.1e}",
             c as f32 / c_ref as f32,
@@ -203,14 +203,16 @@ pub fn sin_cos_test() {
     }
 }
 
-pub fn spring_test(tmax: f32, dt: f32, damping_time: f32, mass: f32) {
+pub fn spring_test(tmax: f32, dt: f32, damping_time: f32, mass: f32, max_iter: usize) {
     println!("tmax         : {tmax}");
     println!("dt           : {dt:e}");
     println!("damping_time : {damping_time:e}");
     println!("mass         : {mass}");
+    println!("max_iter     : {max_iter}");
     println!("");
 
     let x0 = [0.0, 0.0, 0.5, 0.0, 2.0, 0.0];
+    // let x0 = [0.0, 0.0, 1.0, -100.0, 2.0, 0.0];
     let t0 = 0.0;
     let l = 1.0;
     let damping = damping_time.recip();
@@ -223,7 +225,7 @@ pub fn spring_test(tmax: f32, dt: f32, damping_time: f32, mass: f32) {
     };
     let out = |[x0, _, x1, ..]: [f32; 6]| (x0 - x1).abs();
     if true {
-        let (tsr, lsr, ..) = integrate(x0, t0, 1e-5, tmax, gl1(), f, out);
+        let (tsr, lsr, ..) = integrate(x0, t0, 1e-6, tmax, rk2(), f, out, max_iter);
         let reference = tsr
             .into_iter()
             .zip(lsr.into_iter())
@@ -233,28 +235,31 @@ pub fn spring_test(tmax: f32, dt: f32, damping_time: f32, mass: f32) {
             .join("\n");
         std::fs::write("target/ref", reference).unwrap();
     }
-    let (_, lsrd1, crd1, _, mrd1, ..) = integrate(x0, t0, dt, tmax, radau1(), f, out);
-    let (_, lsrd2, crd2, _, mrd2, ..) = integrate(x0, t0, dt, tmax, radau2(), f, out);
-    let (ts, lsgl1, c1, _, m1, ..) = integrate(x0, t0, dt, tmax, gl1(), f, out);
-    let (_, lsgl2, c2, _, m2, ..) = integrate(x0, t0, dt, tmax, gl2(), f, out);
-    let (_, lsgl3, c3, _, m3, ..) = integrate(x0, t0, dt, tmax, gl3(), f, out);
-    let (_, lsrk2, crk2, _, mrk2, ..) = integrate(x0, t0, dt, tmax, rk2(), f, out);
-    println!("rd1 {crd1} {mrd1}\nrd2 {crd2} {mrd2}\ngl1 {c1} {m1}\nrk2 {crk2} {mrk2}\ngl2 {c2} {m2}\ngl3 {c3} {m3}");
+    let (_, lsrd1, crd1, _, mrd1, ..) = integrate(x0, t0, dt, tmax, radau1(), f, out, max_iter);
+    let (ts, lsgl1, c1, _, m1, ..) = integrate(x0, t0, dt, tmax, gl1(), f, out, max_iter);
+    let (_, lsrk1, crk1, _, mrk1, ..) = integrate(x0, t0, dt, tmax, rk1(), f, out, max_iter);
+    let (_, lsrk2, crk2, _, mrk2, ..) = integrate(x0, t0, dt, tmax, rk2(), f, out, max_iter);
+    let mut vals = vec![
+        ("rd1", crd1, mrd1),
+        ("gl1", c1, m1),
+        ("rk1", crk1, mrk1),
+        ("rk2", crk2, mrk2),
+    ];
+    vals.sort_by_key(|v| v.1);
+    for (n, c, m) in vals {
+        println!("{n:>4} {c} {m}");
+    }
     let vals = ts
         .into_iter()
         .zip(lsrd1.into_iter())
-        .zip(lsrd2.into_iter())
         .zip(lsgl1.into_iter())
+        .zip(lsrk1.into_iter())
         .zip(lsrk2.into_iter())
-        .zip(lsgl2.into_iter())
-        .zip(lsgl3.into_iter())
-        .map(|((((((t, lrd1), lrd2), lgl1), lrk2), lgl2), lgl3)| {
-            format!("{t} {lrd1} {lrd2} {lgl1} {lgl2} {lgl3} {lrk2}")
-        })
+        .map(|((((t, lrd1), lgl1), lrk1), lrk2)| format!("{t} {lrd1} {lgl1} {lrk1} {lrk2}"))
         .collect::<Vec<_>>()
         .join("\n");
     std::fs::write("target/vals", vals).unwrap();
-    Command::new("gnuplot").args(["-p", "-e", "set yrange [0.5:1.5]; plot 'target/ref' u 1:2 w l t 'ref', 'target/vals' u 1:2 w l t 'rd1', 'target/vals' u 1:3 w l t 'rd2', 'target/vals' u 1:4 w l t 'gl1', 'target/vals' u 1:5 w l t 'gl2', 'target/vals' u 1:6 w l t 'gl3', 'target/vals' u 1:7 w l t 'rk2'"]).output().unwrap();
+    Command::new("gnuplot").args(["-p", "-e", "set yrange [0.5:1.5]; plot 'target/ref' u 1:2 w lp t 'ref', 'target/vals' u 1:2 w l t 'rd1', 'target/vals' u 1:3 w l t 'gl1', 'target/vals' u 1:4 w l t 'rk1', 'target/vals' u 1:5 w l t 'rk2'"]).output().unwrap();
 }
 
 fn main() {
@@ -278,7 +283,12 @@ fn main() {
         .next()
         .and_then(|v| v.parse::<f32>().ok())
         .unwrap_or(1e-3);
-    spring_test(tmax, dt, damping, mass);
+    let max_iter = std::env::args()
+        .skip(5)
+        .next()
+        .and_then(|v| v.parse::<usize>().ok())
+        .unwrap_or(2);
+    spring_test(tmax, dt, damping, mass, max_iter);
     // exp_test(dt);
     // cos_test();
     // sin_cos_test();
